@@ -1,29 +1,29 @@
-from matplotlib.axis import XAxis
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
-from matplotlib import pyplot as plt
-import matplotlib
 import pandas as pd
-import PyQt5
-import matplotlib.dates as mdates
-import cufflinks as cf
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.offline import iplot, init_notebook_mode
 
-cf.go_offline()
-init_notebook_mode()
-plt.style.use('ggplot')
-matplotlib.use('Qt5Agg')
+
+conn = psycopg2.connect(host='localhost', database='data',
+                        user='ghazal', password='qwerty')
+
+cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 
 def convert_format(s: str):
+    """
+    converts string format to datetime
+    """
     date = datetime.strptime(s, '%Y/%m/%d').date()
     return date
 
 
 def daily_close_prices():
+    """
+    gets close prices and date from database. plots the data by using lineplot.
+    """
     close_prices = []
     dates = []
     cur.execute('SELECT RELEASED_DATE, CLOSE_PRICE FROM USDPRICES')
@@ -41,7 +41,11 @@ def daily_close_prices():
     fig.show()
 
 
-def candle_stick():
+def candlestick():
+    """
+    gets all the data from database and plots candlestick chart. calculates 
+    sum moving average and uses it as an andicator.
+    """
     open_prices = []
     low_prices = []
     high_prices = []
@@ -60,35 +64,34 @@ def candle_stick():
 
     df = pd.DataFrame({'Date': dates, 'Open Price': open_prices, 'Low Price': low_prices,
                       'High Price': high_prices, 'Close Price': close_prices})
-    
-    # fig = go.Figure(data=[go.Candlestick(x=df['Date'],
-    #                                      open=df["Open Price"],
-    #                                      high=df["High Price"],
-    #                                      low=df["Low Price"],
-    #                                      close=df["Close Price"])]
-    #                 )
+    df['SMA'] = df['Close Price'].rolling(30).mean()
+    fig = go.Figure(data=[go.Candlestick(x=df['Date'],
+                                         open=df["Open Price"],
+                                         high=df["High Price"],
+                                         low=df["Low Price"],
+                                         close=df["Close Price"],
+                                         line=dict(width=1),),
+                          go.Scatter(x=df['Date'],
+                                     y=df['SMA']
+                                     ),
+                          ]
+                    )
 
-    # fig.update_layout(
-    #     title='Daily Candlestick Chart',
-    #     yaxis_title="Price",
-    #     xaxis_title = 'Date'
-    # )
-    
-    # fig.update_xaxes(dtick="M1", tickformat='%Y-%m')
+    fig.update_layout(
+        title='Daily Candlestick Chart (Indicator: Sum Moving Average)',
+        yaxis_title="Price",
+        xaxis_title='Date'
+    )
 
-    # fig.show()
-    
-    qf = cf.QuantFig(df, title="Apple's stock price in 2021", name='AAPL')
-    qf.iplot()
+    fig.update_xaxes(dtick="M1", tickformat='%Y-%m')
+
+    fig.show()
 
 
-conn = psycopg2.connect(host='localhost', database='data',
-                        user='ghazal', password='qwerty')
 
-cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+daily_close_prices()
+candlestick()
 
-# daily_close_prices()
-candle_stick()
+
 cur.close()
-
 conn.close()
