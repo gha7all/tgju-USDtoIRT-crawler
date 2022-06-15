@@ -21,7 +21,7 @@ cur = conn.cursor()
 
 def create_table():
     cur.execute("""
-                CREATE TABLE TEST (id SERIAL PRIMARY KEY, 
+                CREATE TABLE USDPRICES (id SERIAL PRIMARY KEY, 
                 released_date VARCHAR, open_price INT, low_price INT, high_price INT, close_price INT);
                  """
                 )
@@ -30,7 +30,7 @@ def create_table():
 
 def insert_to_db(open_price, low_price, high_price, close_price, date):
     cur.execute("""
-                INSERT INTO TEST (released_date, open_price, low_price, high_price, close_price) 
+                INSERT INTO USDPRICES (released_date, open_price, low_price, high_price, close_price) 
                 VALUES(%s, %s, %s, %s, %s);
                 """,
                 (date, open_price, low_price, high_price, close_price))
