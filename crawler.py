@@ -7,21 +7,18 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 import chromedriver_autoinstaller as chromedriver
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-import pandas as pd
 
 
 def create_db():
     cur.execute(
-     'CREATE TABLE prices (id SERIAL PRIMARY KEY, released_date VARCHAR, open_price INT, low_price INT, high_price INT, close_price INT);')
-     
+        'CREATE TABLE USDPRICES (id SERIAL PRIMARY KEY, released_date VARCHAR, open_price INT, low_price INT, high_price INT, close_price INT);')
+
     conn.commit()
-     
-    
+
 
 def commit_to_db(open_price, low_price, high_price, close_price, date):
     cur.execute("""
-                INSERT INTO prices (released_date, open_price, low_price, high_price, close_price) VALUES(%s, %s, %s, %s, %s);
+                INSERT INTO USDPRICES (released_date, open_price, low_price, high_price, close_price) VALUES(%s, %s, %s, %s, %s);
                 """,
                 (date, open_price, low_price, high_price, close_price))
     conn.commit()
@@ -42,7 +39,7 @@ def calender_setup():
     last_page_number = wd.find_element(
         By.XPATH, '/html/body/main/div[1]/div[2]/div[2]/div[1]/div/div[3]/div/div[2]/div/div[1]/span/a[6]').text
 
-    return last_page_number
+    return int(last_page_number)
 
 
 def click_next():
@@ -58,8 +55,11 @@ def click_next():
 def crawler():
     last_page_number = calender_setup()
     click_next()
-    for page in range(int(last_page_number) - 1):
-        for i in range(1, 31):
+    for page in range(last_page_number):
+        number_of_rows = len(wd.find_elements(By.XPATH, '//*[@id="table-list"]/tr'))
+        time.sleep(1)
+        
+        for i in range(1, number_of_rows+1):
             table = wd.find_elements(
                 By.XPATH, f'//*[@id="table-list"]/tr[{i}]')
             for t in table:
@@ -82,12 +82,16 @@ def crawler():
                 date = wd.find_element(
                     By.XPATH, f'//*[@id="table-list"]/tr[{i}]/td[8]').text
 
-            commit_to_db(open_price=open_price, low_price=low_price, high_price=high_price, close_price=close_price, date=date)
-            # print(date, low_price, high_price, open_price, close_price)
-        click_next()
-
-        
-        
+            if low_price == 0 and high_price == 0 and close_price == 0 and open_price == 0:
+                pass
+            else:
+                print(date, low_price, high_price, open_price, close_price)
+                commit_to_db(open_price=open_price, low_price=low_price, high_price=high_price, close_price=close_price, date=date)
+            
+        if page == (last_page_number-1):
+            pass
+        else:
+            click_next()
 
 
 conn = psycopg2.connect(host='localhost', database='data',
@@ -106,13 +110,8 @@ wd.implicitly_wait(20)
 crawler()
 wd.quit()
 
-# cur.execute('SELECT * FROM prices')
-
-# df = cur.fetchall()
-# sql = "COPY (SELECT * FROM prices) TO STDOUT WITH CSV DELIMITER ';'"
-# with open("table.csv", "w+") as file:
-#     cur.copy_expert(sql, file)
 
 cur.close()
 
 conn.close()
+
