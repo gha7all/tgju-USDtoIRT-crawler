@@ -1,5 +1,5 @@
 # tgju website crawler and visualizer
-This project basically crawls data from tgju website by using selenium and isualizes the results with plotly.
+This project basically crawls data from tgju website by using selenium and visualizes the results with plotly.
 
 ## How to run
 1. Change config.py file to your local information
